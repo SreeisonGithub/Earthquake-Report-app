@@ -1,4 +1,4 @@
-import 'dart:convert';
+import '../models/model.dart';
 
 import 'package:http/http.dart' show Client;
 
@@ -12,7 +12,10 @@ class ProductApi {
     print(response.statusCode.toString());
     if (response.statusCode == 200) {
       var jsonString = response.body;
-     return json.decode(jsonString);
+      final quakes = quakesFromJson(jsonString);
+      final List<Feature> features = quakes.features;
+      return features;
+      //json.decode(jsonString);
     } else {
       return throw Exception('Failed to load data');
     }

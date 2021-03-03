@@ -1,14 +1,10 @@
-import 'package:earthquake/models/model.dart';
-import 'package:earthquake/repository/api_provider.dart';
+//import 'package:earthquake/models/model.dart';
+import 'package:earthquake/bloc/quakeBloc.dart';
 import 'package:flutter/material.dart';
 
-Map quakes;
-List features = [];
-var bullshit;
-void main() async {
-  quakes = await ProductApi().fetchProducts();
-  features.add(quakes['features']);
-  bullshit = Products.fromJson(quakes['features']);
+import 'package:intl/intl.dart';
+
+void main() {
   runApp(MyApp());
 }
 
@@ -36,13 +32,94 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   int index = 0;
+  QuakeBloc bloc = QuakeBloc();
   @override
   Widget build(BuildContext context) {
-    print(bullshit.toString());
     return Scaffold(
-        body: SafeArea(
-            child: Center(
-      child: Text('hello'),
-    )));
+        appBar: AppBar(
+          title: Text("EarthQuake"),
+          centerTitle: true,
+        ),
+        body: Center(
+          child: StreamBuilder(
+              stream: bloc.quakes,
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return Text('Something went wrong');
+                }
+
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Center(
+                    child: CircularProgressIndicator(),
+                  );
+                }
+
+                if (!snapshot.hasData) {
+                  return Center(
+                    child: Text('Application Error'),
+                  );
+                }
+                var format = DateFormat.yMMMd("en_US").add_jm();
+                var date = format.format(DateTime.fromMicrosecondsSinceEpoch(
+                    snapshot.data[index].properties.time * 1000,
+                    isUtc: true));
+                return ListView.builder(
+                    itemCount: snapshot.data.length,
+                    itemBuilder: (context, index) {
+                      return ListTile(
+                          //dense: true,
+                          leading: CircleAvatar(
+                            radius: 35.0,
+                            backgroundColor: Colors.blueAccent,
+                            child: Text(
+                              snapshot.data[index].properties.mag.roundToDouble().toString(),
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                          title: Row(
+                            children: <Widget>[
+                              Icon(Icons.location_on),
+                              Expanded(
+                                flex: 1,
+                                child: Text(
+                                  snapshot.data[index].properties.place,
+                                  style: TextStyle(fontWeight: FontWeight.w700),
+                                  softWrap: true,
+                                  overflow: TextOverflow.visible,
+                                ),
+                              ),
+                            ],
+                          ),
+                          subtitle: Text(
+                            "       $date",
+                            style: TextStyle(
+                                color: Colors.black26,
+                                fontStyle: FontStyle.italic,
+                                fontWeight: FontWeight.w500),
+                          ),
+                          onTap: () {
+                            showAlertDialogue(
+                                context, snapshot.data[index].properties.title);
+                          });
+                    });
+              }),
+        ));
   }
+}
+
+void showAlertDialogue(BuildContext context, String message) {
+  var alert = AlertDialog(
+    title: Text("Quakes"),
+    content: Text(message),
+    actions: <Widget>[
+      FlatButton(
+          onPressed: () {
+            Navigator.pop(context);
+          },
+          child: Text("OK"))
+    ],
+  );
+  showDialog(context: context, child: alert);
 }
